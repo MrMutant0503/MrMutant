@@ -1,0 +1,180 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Tilemaps;
+using UnityEditor;
+
+public class DynamicTiles : MonoBehaviour
+{
+    // -RANGES - //
+    // inital chance of the tile to be alive
+    [Range(0,100)]
+    public int iniChance;
+    //limit or alive tilles
+    [Range(1, 8)]
+    public int birthLimit;
+    //limit or dead tilles
+    [Range(1, 8)]
+    public int deathLimit;
+    // Number repertition
+    [Range(1, 10)]
+    public int numR;
+    public int count = 0;
+    
+    // -MAP GENERATION- //
+    private int[,] terrainMap;
+    //size of the tile map
+    public Vector3Int tmapSize;
+    //tiles -(you can also use terrain tiles and Animated tiles)-
+    public Tilemap topMap;
+    public Tilemap BotMap;
+    public RuleTile topTile;
+    public Tile botTile;
+    //width and hight
+    public int width; 
+    public int hight;
+
+    // - FUNCTIONS - //
+
+    //simulate tiles |Summery|= Creating the simulation
+    public void doSim(int numR)
+    {
+        clearMap(false);
+        width = tmapSize.x;
+        hight = tmapSize.y;
+
+        //getting a new width and hight that will determin the values for positions in the scene
+        if (terrainMap == null)
+        {
+            terrainMap = new int[width, hight];
+            intPos();
+        }
+
+        //number of times we simulate the generation
+        for (int i = 0; i < numR; i++)
+        {
+            terrainMap = genTilePos(terrainMap);
+        }
+
+        //placing tiles on the map
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < hight; y++)
+            {
+                //placing the top and bottom tiles
+                if (terrainMap[x,y] == 1)
+                {
+                    topMap.SetTile(new Vector3Int(-x + width / 2, -y + hight / 2, 0), topTile);
+                    BotMap.SetTile(new Vector3Int(-x + width / 2, -y + hight / 2, 0), botTile);
+                }
+            }
+        }
+
+
+
+    }
+
+    //Generating Terrain Function
+    public int[,] genTilePos(int[,] oldMap)
+    {
+        int[,] newMap = new int[width, hight];
+        //naighbore as a intiger
+        int neighb;
+        BoundsInt myB = new BoundsInt(-1,-1,0,3,3,1);
+
+        for(int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < hight; y++)
+            {
+                //naighboring cell check
+                neighb = 0;
+                foreach(var b in myB.allPositionsWithin)
+                {
+                    //exscluding values inside the map
+                    if(b.x == 0 && b.y == 0) continue;
+                    //exscluding values outside the map
+                    if(x+b.x >= 0 && x+b.x < width && y+b.y >= 0 && y+b.y < hight)
+                    {
+                        //adding the value of our old map to the counter
+                        neighb += oldMap[x + b.x, y + b.y];
+                    }
+                    else
+                    {
+                        neighb++;
+                    }
+                }
+
+                //birth and death limit peramiters
+                if (oldMap[x, y] == 1)
+                {
+                    // if the naighboring cells are less than the death limit, this will recive a [0] value (dead) otherwise if its equal or higher
+                    if (neighb < deathLimit) newMap[x, y] = 0;
+                    else
+                    {
+                        newMap[x, y] = 1;
+                    }
+                }
+
+                //if the naighbor count is higher than the birth limit, thay will be active [1]
+                if (oldMap[x, y] == 1)
+                {
+                    // if the naighboring cells are less than the death limit, this will recive a [0] value (dead) otherwise if its equal or higher
+                    if (neighb > birthLimit) newMap[x, y] = 0;
+                    else
+                    {
+                        newMap[x, y] = 1;
+                    }
+                }
+            }
+        }
+
+
+        //returing the loop
+        return newMap;
+    }
+
+
+
+
+
+    public void intPos()
+    {
+        //Looping through the width and length of the tilemaps
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < hight; y++)
+            {
+                //Creating a random value between 1 and 100 and seeing if the tile is alive(Filled) or dead(notFilled)
+                terrainMap[x, y] = Random.Range(1, 101) < iniChance ? 1 : 0;
+            }
+        }
+        
+
+
+
+    }
+
+
+
+    // Update is called once per frame
+    //checking for input
+    void Update()
+    {
+       
+        
+    }
+
+
+    //clearing the map
+    public void clearMap(bool complete)
+    {
+        //clear tiles
+        topMap.ClearAllTiles();
+        BotMap.ClearAllTiles();
+
+        if (complete)
+        {
+            terrainMap = null;
+        }
+    }
+}
